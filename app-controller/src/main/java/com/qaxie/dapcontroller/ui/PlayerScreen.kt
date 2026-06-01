@@ -52,6 +52,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onNavigateToConnect: () -> Unit) {
     val trackInfo by viewModel.trackInfo.collectAsState()
     val playbackState by viewModel.playbackState.collectAsState()
     val playbackAnchor by viewModel.playbackAnchor.collectAsState()
+    val volume by viewModel.volume.collectAsState()
 
     val isConnected = connectionState is ConnectionState.Connected
     val controlsEnabled = trackInfo != null && isConnected
@@ -216,6 +217,24 @@ fun PlayerScreen(viewModel: PlayerViewModel, onNavigateToConnect: () -> Unit) {
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down")
+                    }
+                    if (volume != null) {
+                        Column(
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                "${volume!!.level} / ${volume!!.maxLevel}",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            LinearProgressIndicator(
+                                progress = { volume!!.level.toFloat() / volume!!.maxLevel.coerceAtLeast(1) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        Spacer(Modifier.weight(1f))
                     }
                     IconButton(
                         onClick = { viewModel.sendCommand(Command.VolumeUp) },
