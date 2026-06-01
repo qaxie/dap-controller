@@ -16,7 +16,7 @@ The service **only runs when explicitly started by the user**. It never starts a
 | `MediaSessionBridge` | class | Finds the active `MediaSession`, wraps `MediaController`, translates callbacks to protocol messages |
 | `AlbumArtEncoder` | object | Scales and JPEG-encodes a `Bitmap` to a base64 string |
 | `CompanionNotificationListener` | `NotificationListenerService` | Grants permission to call `MediaSessionManager.getActiveSessions()` |
-| `TrustedDeviceStore` | `object` | Persists the trusted phone's Bluetooth address in SharedPreferences |
+| `TrustedDeviceStore` | `object` | Persists the trusted phone's Bluetooth address and friendly name in SharedPreferences |
 
 ---
 
@@ -161,7 +161,7 @@ The notification is updated:
 1. Block on `serverSocket.accept()`.
 2. When a client connects, check the device allowlist:
    - Read `TrustedDeviceStore.getTrustedAddress(context)`.
-   - If **no trusted address is stored**: store `socket.remoteDevice.address` as the trusted address and continue.
+   - If **no trusted address is stored**: store `socket.remoteDevice.address` and `socket.remoteDevice.name` (falling back to address if name is null) via `TrustedDeviceStore.setTrustedDevice()`; update the `trustedAddress` and `trustedName` StateFlows; continue.
    - If the connecting device **matches** the trusted address: continue.
    - If the connecting device **does not match**: close the socket immediately, log a warning, and loop back to `accept()`.
 3. On a trusted connection:
@@ -182,8 +182,8 @@ Reads newline-delimited lines from the client socket and handles each:
 | `Command.PlayPause` | Call `play()` if currently paused; call `pause()` if currently playing |
 | `Command.Next` | Call `mediaController.transportControls.skipToNext()` |
 | `Command.Previous` | Call `mediaController.transportControls.skipToPrevious()` |
-| `Command.VolumeUp` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_RAISE, FLAG_SHOW_UI)` |
-| `Command.VolumeDown` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_LOWER, FLAG_SHOW_UI)` |
+| `Command.VolumeUp` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_RAISE, FLAG_SHOW_UI)`; then send `Update.Volume(level, maxLevel)` with the new stream volume |
+| `Command.VolumeDown` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_LOWER, FLAG_SHOW_UI)`; then send `Update.Volume(level, maxLevel)` with the new stream volume |
 
 On `IOException` from the read: close the client socket, call `MediaSessionBridge.detach()`, update notification to *"Waiting for connection…"*, return to `acceptLoop()`.
 
@@ -265,23 +265,42 @@ Creates a `BluetoothServerSocket` via `BluetoothAdapter.listenUsingRfcommWithSer
 
 ## 9. TrustedDeviceStore
 
-Persists the trusted phone's Bluetooth MAC address in SharedPreferences so the allowlist survives service restarts and reboots.
+Persists the trusted phone's Bluetooth MAC address and friendly name in SharedPreferences so the allowlist survives service restarts and reboots.
 
 ```kotlin
 object TrustedDeviceStore {
     private const val PREFS_NAME = "companion_prefs"
     private const val KEY_TRUSTED_ADDRESS = "trusted_device_address"
+    private const val KEY_TRUSTED_NAME = "trusted_device_name"
 
     fun getTrustedAddress(context: Context): String?
-    fun setTrustedAddress(context: Context, address: String)
+    fun getTrustedName(context: Context): String?
+    fun setTrustedDevice(context: Context, address: String, name: String)
     fun clear(context: Context)
 }
 ```
 
-- All three methods use `context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)`.
-- `getTrustedAddress` returns `null` if no address has been saved.
-- `setTrustedAddress` stores the address string and commits synchronously (`commit()` not `apply()`) so it is durable before the connection proceeds.
-- `clear` removes the key.
+- All methods use `context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)`.
+- `getTrustedAddress` / `getTrustedName` return `null` if nothing has been saved.
+- `setTrustedDevice` stores both address and name and commits synchronously (`commit()` not `apply()`) so they are durable before the connection proceeds.
+- `clear` removes both keys.
+
+### CompanionService StateFlows for trust
+
+`CompanionService` companion object exposes two `StateFlow`s so `MainActivity` can observe trust changes at runtime without binding to the service:
+
+| Name | Type | Updated when |
+|---|---|---|
+| `trustedAddress` | `StateFlow<String?>` | Service starts (from prefs), first connection establishes trust |
+| `trustedName` | `StateFlow<String?>` | Same as above |
+
+### ACTION_FORGET
+
+`CompanionService` handles `ACTION_FORGET` in `onStartCommand`:
+1. Calls `BtServer.closeClientSocket()` — drops the active connection immediately.
+2. Calls `updateStatus(STATUS_WAITING)` — notification returns to *"Waiting for connection…"*.
+
+`MainActivity` sends this intent (via `startService`) when the user taps *Forget* and the service is running. It also clears `TrustedDeviceStore` and resets both StateFlows directly.
 
 ---
 
