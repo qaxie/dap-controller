@@ -218,18 +218,19 @@ fun PlayerScreen(viewModel: PlayerViewModel, onNavigateToConnect: () -> Unit) {
                     ) {
                         Icon(Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down")
                     }
-                    if (volume != null) {
+                    val vol = volume
+                    if (vol != null) {
                         Column(
                             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                "${volume!!.level} / ${volume!!.maxLevel}",
+                                "${vol.level} / ${vol.maxLevel}",
                                 style = MaterialTheme.typography.labelSmall
                             )
                             LinearProgressIndicator(
-                                progress = { volume!!.level.toFloat() / volume!!.maxLevel.coerceAtLeast(1) },
+                                progress = { vol.level.toFloat() / vol.maxLevel.coerceAtLeast(1) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
