@@ -23,4 +23,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Dap Controller"
-include(":dap-controller")
+include(":app-controller")
+include(":app-companion")
+include(":core")
