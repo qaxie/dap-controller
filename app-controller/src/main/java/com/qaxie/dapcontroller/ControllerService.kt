@@ -8,7 +8,9 @@ import android.app.Service
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.IBinder
+import android.util.Base64
 import com.qaxie.dapcontroller.core.Command
 import com.qaxie.dapcontroller.core.Update
 import kotlinx.coroutines.CoroutineScope
@@ -176,37 +178,61 @@ class ControllerService : Service() {
             }
         }
 
+        val contentIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setSmallIcon(R.drawable.ic_play)
+            .setContentIntent(contentIntent)
             .setOngoing(state is ConnectionState.Connected || state is ConnectionState.Connecting)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+
+        track?.albumArtBase64?.let { base64 ->
+            try {
+                val bytes = Base64.decode(base64, Base64.NO_WRAP)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { builder.setLargeIcon(it) }
+            } catch (_: Exception) {}
+        }
 
         when {
             state is ConnectionState.Connected && track != null -> {
-                builder.addAction(makeAction("⏮", ACTION_PREVIOUS))
-                builder.addAction(makeAction(if (playback?.isPlaying == true) "⏸" else "▶", ACTION_PLAY_PAUSE))
-                builder.addAction(makeAction("⏭", ACTION_NEXT))
-                builder.addAction(makeAction("Disconnect", ACTION_DISCONNECT))
+                val isPlaying = playback?.isPlaying == true
+                builder.addAction(makeAction("Previous", ACTION_PREVIOUS, R.drawable.ic_skip_previous))
+                builder.addAction(makeAction(
+                    if (isPlaying) "Pause" else "Play", ACTION_PLAY_PAUSE,
+                    if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+                ))
+                builder.addAction(makeAction("Next", ACTION_NEXT, R.drawable.ic_skip_next))
+                builder.addAction(makeAction("Disconnect", ACTION_DISCONNECT, android.R.drawable.ic_menu_close_clear_cancel))
+                builder.setStyle(Notification.MediaStyle().setShowActionsInCompactView(0, 1, 2))
             }
             state is ConnectionState.Connected -> {
-                builder.addAction(makeAction("Disconnect", ACTION_DISCONNECT))
+                builder.addAction(makeAction("Disconnect", ACTION_DISCONNECT, android.R.drawable.ic_menu_close_clear_cancel))
+                builder.setStyle(Notification.MediaStyle())
             }
             state is ConnectionState.Failed -> {
-                builder.addAction(makeAction("Dismiss", ACTION_DISCONNECT))
+                builder.addAction(makeAction("Dismiss", ACTION_DISCONNECT, android.R.drawable.ic_menu_close_clear_cancel))
             }
         }
 
         return builder.build()
     }
 
-    private fun makeAction(label: String, action: String): Notification.Action {
+    @Suppress("DEPRECATION")
+    private fun makeAction(label: String, action: String, iconRes: Int): Notification.Action {
         val intent = Intent(this, ControllerService::class.java).apply { this.action = action }
         val pi = PendingIntent.getService(
             this, action.hashCode(), intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        return Notification.Action.Builder(null, label, pi).build()
+        return Notification.Action.Builder(iconRes, label, pi).build()
     }
 
     companion object {
