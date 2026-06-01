@@ -1,6 +1,6 @@
 # app-companion Spec
 
-The companion runs on the Hiby R4 DAP. It has a minimal one-screen UI for starting and stopping the service, and a foreground service that bridges Auxio's `MediaSession` to a Bluetooth RFCOMM socket.
+The companion runs on the Android DAP DAP. It has a minimal one-screen UI for starting and stopping the service, and a foreground service that bridges the active `MediaSession` on the DAP to a Bluetooth RFCOMM socket. It works with any app that publishes a `MediaSession` (Auxio, Spotify, YouTube, etc.).
 
 The service **only runs when explicitly started by the user**. It never starts automatically. When it is running, a persistent notification is always visible so the user knows it is active. The user has full control to start and stop it at any time.
 
@@ -13,7 +13,7 @@ The service **only runs when explicitly started by the user**. It never starts a
 | `MainActivity` | `ComponentActivity` | Minimal launcher screen — shows service status, start/stop button |
 | `CompanionService` | Foreground `Service` | Top-level owner of the BT server and Auxio session lifecycle |
 | `BtServer` | class | Owns the `BluetoothServerSocket`, manages the read/write loops |
-| `MediaSessionBridge` | class | Finds Auxio's `MediaSession`, wraps `MediaController`, translates callbacks to protocol messages |
+| `MediaSessionBridge` | class | Finds the active `MediaSession`, wraps `MediaController`, translates callbacks to protocol messages |
 | `AlbumArtEncoder` | object | Scales and JPEG-encodes a `Bitmap` to a base64 string |
 | `CompanionNotificationListener` | `NotificationListenerService` | Grants permission to call `MediaSessionManager.getActiveSessions()` |
 
@@ -23,7 +23,7 @@ The service **only runs when explicitly started by the user**. It never starts a
 
 ### 2.1 How to Start
 
-**Only one way:** open the DAP Companion app on the Hiby R4 and tap *Start*. The service never starts on its own — not on boot, not in the background, not for any other reason.
+**Only one way:** open the DAP Companion app on the Android DAP and tap *Start*. The service never starts on its own — not on boot, not in the background, not for any other reason.
 
 ### 2.2 How to Stop
 
@@ -104,10 +104,10 @@ The notification is the primary way to observe companion status without opening 
 | Service state | Notification title | Notification text |
 |---|---|---|
 | Listening, no phone connected | *DAP Companion* | *Waiting for connection…* |
-| Phone connected, Auxio not running | *DAP Companion* | *Connected — waiting for Auxio…* |
-| Phone connected, Auxio playing | *DAP Companion* | *Connected · \<title\> — \<artist\>* |
-| Phone connected, Auxio paused | *DAP Companion* | *Paused · \<title\> — \<artist\>* |
-| Auxio session lost (phone still connected) | *DAP Companion* | *Connected — waiting for Auxio…* |
+| Phone connected, no active media session | *DAP Companion* | *Connected — waiting for playback…* |
+| Phone connected, media playing | *DAP Companion* | *Connected · \<title\> — \<artist\>* |
+| Phone connected, media paused | *DAP Companion* | *Paused · \<title\> — \<artist\>* |
+| Media session lost (phone still connected) | *DAP Companion* | *Connected — waiting for playback…* |
 
 ### 4.2 Notification Action
 
@@ -150,7 +150,7 @@ The notification is updated:
    c. Update notification to *"Connected — waiting for Auxio…"*.
    d. Call `MediaSessionBridge.attach()`.
       - If it returns `true`: send current `TRACK_INFO` and `PLAYBACK_STATE` immediately (skip if null). Update notification to reflect current track/state.
-      - If it returns `false` (Auxio not running): enter a 2-second retry loop — call `MediaSessionBridge.attach()` every 2 seconds until it returns `true` or the client socket closes.
+      - If it returns `false` (no active media session): enter a 2-second retry loop — call `MediaSessionBridge.attach()` every 2 seconds until it returns `true` or the client socket closes.
 3. Start the command read loop on the client socket.
 
 ### 5.4 Command Read Loop
@@ -172,13 +172,13 @@ On `IOException` from the read: close the client socket, call `MediaSessionBridg
 ### 6.1 attach(): Boolean
 
 1. Call `MediaSessionManager.getActiveSessions(ComponentName(context, CompanionNotificationListener::class.java))`.
-2. Find the first session whose package name equals `org.oxycblt.auxio`.
-3. If found:
+2. Pick the best session: prefer the first session whose playback state is `STATE_PLAYING`; fall back to the first session in the list (most recently active).
+3. If a session is found:
    - Create a `MediaController` for that session.
    - Register a `Callback` (see §6.3).
    - Store the controller reference.
    - Return `true`.
-4. If not found: return `false`. No callback is registered.
+4. If no sessions exist: return `false`. No callback is registered.
 
 ### 6.2 detach()
 
@@ -192,7 +192,7 @@ On `IOException` from the read: close the client socket, call `MediaSessionBridg
 |---|---|
 | `onMetadataChanged(metadata)` | Build `TrackInfo` from metadata; call `AlbumArtEncoder.encodeOrNull()` for art; send `Update.Track` via `BtServer.send()`; update notification. |
 | `onPlaybackStateChanged(state)` | Build `PlaybackState(isPlaying, positionMs)` from state; send `Update.State` via `BtServer.send()`; update notification. |
-| `onSessionDestroyed()` | Call `detach()`; notify `CompanionService` to begin the 2-second retry loop; update notification to *"Connected — waiting for Auxio…"*. |
+| `onSessionDestroyed()` | Call `detach()`; notify `CompanionService` to begin the 2-second retry loop; update notification to *"Connected — waiting for playback…"*. |
 
 ### 6.4 getCurrentTrackInfo(): TrackInfo?
 

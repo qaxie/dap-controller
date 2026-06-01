@@ -247,7 +247,7 @@ Collected directly from `ConnectionRepository`:
 
 ```
 ┌────────────────────────────────┐
-│  ● Connected: Hiby R4          │  ← connection indicator + device name
+│  ● Connected: My DAP           │  ← connection indicator + device name
 │                                │
 │    [ Album Art — 200×200 dp ]  │  ← placeholder icon if albumArtBase64 is null
 │                                │

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DAP Companion</string>
+    <string name="status_running">● Running</string>
+    <string name="status_stopped">○ Stopped</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="warning_notification_access">⚠ Notification access not granted. Tap to fix.</string>
+    <string name="notification_channel_name">DAP Companion Service</string>
+    <string name="notification_action_stop">Stop</string>
 </resources>

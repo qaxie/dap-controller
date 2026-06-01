@@ -2,12 +2,12 @@
 
 ## What It Does
 
-Two Android apps that let a phone control music playback on a Hiby R4 DAP running Auxio, connected over Bluetooth Classic (RFCOMM).
+Two Android apps that let a phone control music playback on a Android DAP DAP, connected over Bluetooth Classic (RFCOMM). Works with any media app that publishes a MediaSession (Auxio, Spotify, YouTube, etc.).
 
 | App | Runs on | Role |
 |---|---|---|
 | `app-controller` | Phone | UI — shows now-playing info, sends playback commands |
-| `app-companion` | Hiby R4 DAP | Minimal launcher screen (start/stop) + background service that bridges Auxio's MediaSession to the BT socket |
+| `app-companion` | Android DAP DAP | Minimal launcher screen (start/stop) + background service that bridges the active MediaSession to the BT socket |
 | `core` | Both (library) | Shared BT protocol definitions and data models |
 
 ---
@@ -15,13 +15,13 @@ Two Android apps that let a phone control music playback on a Hiby R4 DAP runnin
 ## Architecture
 
 ```
-[Phone]                              [Hiby R4 DAP]
+[Phone]                              [Android DAP DAP]
 app-controller                       app-companion
       │                                    │
       │   Bluetooth RFCOMM (JSON/newline)  │
       │ ◄─────────────────────────────────►│
-      │   Commands →                       │──► MediaController ──► Auxio
-      │              ← Track/State updates │◄────────────────────────────
+      │   Commands →                       │──► MediaController ──► active media app
+      │              ← Track/State updates │◄──────────────────────────────────────
       │                                    │
       └──────────────── :core ─────────────┘
 ```
@@ -37,7 +37,7 @@ app-controller                       app-companion
 
 ### First-Time Setup
 
-1. **DAP:** Install `app-companion` APK on the Hiby R4.
+1. **DAP:** Install `app-companion` APK on the Android DAP.
 2. **DAP:** Open the DAP Companion app → go to Settings → Apps → Special app access → Notification access → enable *DAP Companion*.
 3. **Both:** Pair the phone and DAP via Android Bluetooth settings.
 4. **Phone:** Install `app-controller` APK, open it, grant Bluetooth permissions.
@@ -45,9 +45,9 @@ app-controller                       app-companion
 ### Daily Use
 
 1. **DAP:** Open DAP Companion app → tap *Start*.
-2. **Phone:** Open controller app → tap *Hiby R4* in the paired device list.
+2. **Phone:** Open controller app → tap *Android DAP* in the paired device list.
 3. App connects (typically under 2 seconds when both devices are awake).
-4. Player screen appears showing whatever Auxio is currently playing.
+4. Player screen appears showing whatever is currently playing on the DAP.
 5. Use play/pause, next, and previous as needed.
 6. **When done:** Stop the companion from the app or its notification *Stop* button. Or leave it running if you plan to reconnect soon.
 
