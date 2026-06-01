@@ -268,7 +268,7 @@ Collected directly from `ConnectionRepository`:
 
 ```
 ┌────────────────────────────────┐
-│  ● Connected: My DAP           │  ← connection indicator + device name
+│  ● Connected: My DAP Disconnect│  ← indicator + name left, Disconnect button right
 │                                │
 │    [ Album Art — 200×200 dp ]  │  ← placeholder icon if albumArtBase64 is null
 │                                │
@@ -332,7 +332,11 @@ Both buttons are disabled when not connected.
 
 Each tap fires exactly one command. No debounce.
 
-### 9.7 Disconnect Handling
+### 9.7 Disconnect Button
+
+A *Disconnect* `TextButton` is shown on the right side of the connection indicator row whenever `connectionState` is `Connected`. Tapping it calls `viewModel.disconnect()` and navigates back to `ConnectScreen`.
+
+### 9.8 Disconnect Handling
 
 When `connectionState` becomes `Failed` or `Disconnected` while on `PlayerScreen`:
 
