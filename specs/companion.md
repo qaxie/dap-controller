@@ -10,12 +10,13 @@ The service **only runs when explicitly started by the user**. It never starts a
 
 | Component | Type | Role |
 |---|---|---|
-| `MainActivity` | `ComponentActivity` | Minimal launcher screen — shows service status, start/stop button |
+| `MainActivity` | `ComponentActivity` | Minimal launcher screen — shows service status, start/stop button, trusted device |
 | `CompanionService` | Foreground `Service` | Top-level owner of the BT server and Auxio session lifecycle |
 | `BtServer` | class | Owns the `BluetoothServerSocket`, manages the read/write loops |
 | `MediaSessionBridge` | class | Finds the active `MediaSession`, wraps `MediaController`, translates callbacks to protocol messages |
 | `AlbumArtEncoder` | object | Scales and JPEG-encodes a `Bitmap` to a base64 string |
 | `CompanionNotificationListener` | `NotificationListenerService` | Grants permission to call `MediaSessionManager.getActiveSessions()` |
+| `TrustedDeviceStore` | `object` | Persists the trusted phone's Bluetooth address in SharedPreferences |
 
 ---
 
@@ -66,6 +67,9 @@ The only purpose of this screen is service control and status visibility.
 │  ⚠ Notification access not     │  ← shown only when access is missing
 │    granted. Tap to fix.        │
 │                                │
+│  Trusted phone:                │
+│  AA:BB:CC:DD:EE:FF  [Forget]   │  ← or "None set" with no button
+│                                │
 │           [ Stop ]             │  ← label toggles to [Start] when stopped
 │                                │
 └────────────────────────────────┘
@@ -87,7 +91,18 @@ Mirrors the current notification text so the user can see the same status inform
 - If not enabled: show the warning banner. Tapping it opens `ACTION_NOTIFICATION_LISTENER_SETTINGS`.
 - If enabled: hide the banner.
 
-### 3.4 Start / Stop Button
+### 3.4 Trusted Device Row
+
+- Reads the trusted device from `TrustedDeviceStore`.
+- If no trusted device: show *"Trusted phone: None set"* (no Forget button). The first phone to connect will automatically become trusted.
+- If a trusted device is stored: show *"Trusted phone: \<name\>"* and a *"Forget"* button.
+- Tapping *Forget*:
+  1. Calls `TrustedDeviceStore.clear(context)`.
+  2. If the service is running, closes the active client socket immediately (the phone sees "Connection lost").
+  3. Updates the UI to *"None set"*.
+- This row is always visible (service running or stopped) so the user can manage trust at any time.
+
+### 3.5 Start / Stop Button
 
 - **When stopped:** label is *"Start"*. Tapping calls `startForegroundService(Intent(context, CompanionService::class.java))`.
 - **When running:** label is *"Stop"*. Tapping calls `stopService(Intent(context, CompanionService::class.java))`.
@@ -144,7 +159,12 @@ The notification is updated:
 `BtServer.acceptLoop()` runs until the server socket is closed:
 
 1. Block on `serverSocket.accept()`.
-2. When a client connects:
+2. When a client connects, check the device allowlist:
+   - Read `TrustedDeviceStore.getTrustedAddress(context)`.
+   - If **no trusted address is stored**: store `socket.remoteDevice.address` as the trusted address and continue.
+   - If the connecting device **matches** the trusted address: continue.
+   - If the connecting device **does not match**: close the socket immediately, log a warning, and loop back to `accept()`.
+3. On a trusted connection:
    a. Close any previously active client socket.
    b. Pass the new socket to the active connection handler.
    c. Update notification to *"Connected — waiting for Auxio…"*.
@@ -243,7 +263,29 @@ Creates a `BluetoothServerSocket` via `BluetoothAdapter.listenUsingRfcommWithSer
 
 ---
 
-## 9. Permissions
+## 9. TrustedDeviceStore
+
+Persists the trusted phone's Bluetooth MAC address in SharedPreferences so the allowlist survives service restarts and reboots.
+
+```kotlin
+object TrustedDeviceStore {
+    private const val PREFS_NAME = "companion_prefs"
+    private const val KEY_TRUSTED_ADDRESS = "trusted_device_address"
+
+    fun getTrustedAddress(context: Context): String?
+    fun setTrustedAddress(context: Context, address: String)
+    fun clear(context: Context)
+}
+```
+
+- All three methods use `context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)`.
+- `getTrustedAddress` returns `null` if no address has been saved.
+- `setTrustedAddress` stores the address string and commits synchronously (`commit()` not `apply()`) so it is durable before the connection proceeds.
+- `clear` removes the key.
+
+---
+
+## 10. Permissions
 
 ```xml
 <!-- Required on all API levels — some Android DAP firmware (e.g. Hiby R4 on Android 12)

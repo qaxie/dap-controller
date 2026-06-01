@@ -22,6 +22,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textStatus: TextView
     private lateinit var textDetail: TextView
     private lateinit var textWarning: TextView
+    private lateinit var textTrustedDevice: TextView
+    private lateinit var buttonForget: Button
     private lateinit var buttonToggle: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,10 +33,23 @@ class MainActivity : AppCompatActivity() {
         textStatus = findViewById(R.id.textStatus)
         textDetail = findViewById(R.id.textDetail)
         textWarning = findViewById(R.id.textWarning)
+        textTrustedDevice = findViewById(R.id.textTrustedDevice)
+        buttonForget = findViewById(R.id.buttonForget)
         buttonToggle = findViewById(R.id.buttonToggle)
 
         textWarning.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+
+        buttonForget.setOnClickListener {
+            TrustedDeviceStore.clear(this)
+            CompanionService._trustedAddress.value = null
+            CompanionService._trustedName.value = null
+            if (CompanionService.isRunning.value) {
+                startService(Intent(this, CompanionService::class.java).apply {
+                    action = CompanionService.ACTION_FORGET
+                })
+            }
         }
 
         buttonToggle.setOnClickListener {
@@ -45,7 +60,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Observe live status text from the service
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 CompanionService.statusText.collect { text ->
@@ -61,6 +75,17 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                CompanionService.trustedName.collect { name ->
+                    updateTrustedDeviceUI(name)
+                }
+            }
+        }
+
+        // Show current trusted device on first load (service may not be running)
+        updateTrustedDeviceUI(TrustedDeviceStore.getTrustedName(this))
     }
 
     override fun onResume() {
@@ -73,6 +98,16 @@ class MainActivity : AppCompatActivity() {
         textStatus.text = getString(if (running) R.string.status_running else R.string.status_stopped)
         buttonToggle.text = getString(if (running) R.string.action_stop else R.string.action_start)
         updateWarning()
+    }
+
+    private fun updateTrustedDeviceUI(name: String?) {
+        if (name == null) {
+            textTrustedDevice.text = getString(R.string.trusted_device_none)
+            buttonForget.visibility = View.GONE
+        } else {
+            textTrustedDevice.text = getString(R.string.trusted_device_prefix) + name
+            buttonForget.visibility = View.VISIBLE
+        }
     }
 
     private fun updateWarning() {

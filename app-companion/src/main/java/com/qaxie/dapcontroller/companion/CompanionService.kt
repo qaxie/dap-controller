@@ -35,6 +35,8 @@ class CompanionService : Service() {
     override fun onCreate() {
         super.onCreate()
         _isRunning.value = true
+        _trustedAddress.value = TrustedDeviceStore.getTrustedAddress(this)
+        _trustedName.value = TrustedDeviceStore.getTrustedName(this)
 
         btServer = BtServer(this)
         mediaSessionBridge = MediaSessionBridge(
@@ -60,6 +62,18 @@ class CompanionService : Service() {
                     btServer.accept()
                 } catch (e: IOException) {
                     break
+                }
+                val incomingAddress = socket.remoteDevice.address
+                val incomingName = socket.remoteDevice.name ?: incomingAddress
+                val trusted = TrustedDeviceStore.getTrustedAddress(this@CompanionService)
+                if (trusted == null) {
+                    TrustedDeviceStore.setTrustedDevice(this@CompanionService, incomingAddress, incomingName)
+                    _trustedAddress.value = incomingAddress
+                    _trustedName.value = incomingName
+                } else if (incomingAddress != trusted) {
+                    android.util.Log.w("CompanionService", "Rejected connection from untrusted device $incomingAddress")
+                    try { socket.close() } catch (_: IOException) {}
+                    continue
                 }
                 connectionJob?.cancel()
                 connectionJob = scope.launch {
@@ -109,7 +123,13 @@ class CompanionService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) stopSelf()
+        when (intent?.action) {
+            ACTION_STOP -> stopSelf()
+            ACTION_FORGET -> {
+                btServer.closeClientSocket()
+                updateStatus(STATUS_WAITING)
+            }
+        }
         return START_NOT_STICKY
     }
 
@@ -163,6 +183,7 @@ class CompanionService : Service() {
 
     companion object {
         const val ACTION_STOP = "com.qaxie.dapcontroller.companion.ACTION_STOP"
+        const val ACTION_FORGET = "com.qaxie.dapcontroller.companion.ACTION_FORGET"
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "companion_service"
 
@@ -174,5 +195,11 @@ class CompanionService : Service() {
 
         private val _statusText = MutableStateFlow(STATUS_WAITING)
         val statusText: StateFlow<String> = _statusText
+
+        val _trustedAddress = MutableStateFlow<String?>(null)
+        val trustedAddress: StateFlow<String?> = _trustedAddress
+
+        val _trustedName = MutableStateFlow<String?>(null)
+        val trustedName: StateFlow<String?> = _trustedName
     }
 }
