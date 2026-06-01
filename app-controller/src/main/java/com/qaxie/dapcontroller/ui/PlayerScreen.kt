@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -197,6 +199,30 @@ fun PlayerScreen(viewModel: PlayerViewModel, onNavigateToConnect: () -> Unit) {
                         ) {
                             Icon(Icons.Default.SkipNext, contentDescription = "Next")
                         }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Volume controls
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { viewModel.sendCommand(Command.VolumeDown) },
+                        enabled = isConnected,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.VolumeDown, contentDescription = "Volume Down")
+                    }
+                    IconButton(
+                        onClick = { viewModel.sendCommand(Command.VolumeUp) },
+                        enabled = isConnected,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Volume Up")
                     }
                 }
             }

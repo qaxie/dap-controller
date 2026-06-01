@@ -13,6 +13,8 @@ object MessageParser {
                 "PLAY_PAUSE" -> Command.PlayPause
                 "NEXT" -> Command.Next
                 "PREVIOUS" -> Command.Previous
+                "VOLUME_UP" -> Command.VolumeUp
+                "VOLUME_DOWN" -> Command.VolumeDown
                 else -> null
             }
         } catch (e: JSONException) {
@@ -27,6 +29,7 @@ object MessageParser {
             when (json.optString("type")) {
                 "TRACK_INFO" -> parseTrackInfo(json)
                 "PLAYBACK_STATE" -> parsePlaybackState(json)
+                "VOLUME" -> parseVolume(json)
                 else -> null
             }
         } catch (e: JSONException) {
@@ -58,5 +61,10 @@ object MessageParser {
                 positionMs = json.getLong("positionMs")
             )
         )
+    }
+
+    private fun parseVolume(json: JSONObject): Update.Volume? {
+        if (!json.has("level") || !json.has("maxLevel")) return null
+        return Update.Volume(json.getInt("level"), json.getInt("maxLevel"))
     }
 }

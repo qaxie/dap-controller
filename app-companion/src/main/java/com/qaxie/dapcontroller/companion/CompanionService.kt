@@ -5,7 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.IBinder
 import com.qaxie.dapcontroller.core.MessageParser
 import com.qaxie.dapcontroller.core.Update
@@ -80,6 +82,11 @@ class CompanionService : Service() {
         // Push current state immediately so the phone doesn't wait for the next change
         mediaSessionBridge.getCurrentTrackInfo()?.let { btServer.send(Update.Track(it)) }
         mediaSessionBridge.getCurrentPlaybackState()?.let { btServer.send(Update.State(it)) }
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        btServer.send(Update.Volume(
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC),
+            audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        ))
 
         // Read loop — blocks on IO until client disconnects
         val reader = withContext(Dispatchers.IO) {

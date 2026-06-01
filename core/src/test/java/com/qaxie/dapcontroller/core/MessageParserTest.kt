@@ -26,6 +26,16 @@ class MessageParserTest {
         assertEquals(Command.Previous, MessageParser.parseCommand("""{"type":"PREVIOUS"}"""))
     }
 
+    @Test
+    fun `parse VOLUME_UP command`() {
+        assertEquals(Command.VolumeUp, MessageParser.parseCommand("""{"type":"VOLUME_UP"}"""))
+    }
+
+    @Test
+    fun `parse VOLUME_DOWN command`() {
+        assertEquals(Command.VolumeDown, MessageParser.parseCommand("""{"type":"VOLUME_DOWN"}"""))
+    }
+
     // --- parseCommand: invalid / unknown input ---
 
     @Test
@@ -127,6 +137,29 @@ class MessageParserTest {
     @Test
     fun `parse PLAYBACK_STATE with missing positionMs returns null`() {
         assertNull(MessageParser.parseUpdate("""{"type":"PLAYBACK_STATE","isPlaying":true}"""))
+    }
+
+    // --- parseUpdate: VOLUME ---
+
+    @Test
+    fun `parse VOLUME update`() {
+        val line = """{"type":"VOLUME","level":8,"maxLevel":15}"""
+        val result = MessageParser.parseUpdate(line)
+        assertNotNull(result)
+        assertTrue(result is Update.Volume)
+        val volume = result as Update.Volume
+        assertEquals(8, volume.level)
+        assertEquals(15, volume.maxLevel)
+    }
+
+    @Test
+    fun `parse VOLUME with missing level returns null`() {
+        assertNull(MessageParser.parseUpdate("""{"type":"VOLUME","maxLevel":15}"""))
+    }
+
+    @Test
+    fun `parse VOLUME with missing maxLevel returns null`() {
+        assertNull(MessageParser.parseUpdate("""{"type":"VOLUME","level":8}"""))
     }
 
     // --- parseUpdate: invalid / unknown input ---

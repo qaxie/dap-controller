@@ -2,6 +2,7 @@ package com.qaxie.dapcontroller.companion
 
 import android.content.ComponentName
 import android.content.Context
+import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -63,15 +64,30 @@ class MediaSessionBridge(
     }
 
     fun executeCommand(command: Command) {
-        val controls = mediaController?.transportControls ?: return
         when (command) {
-            is Command.PlayPause -> {
-                val state = mediaController?.playbackState?.state
-                if (state == AndroidPlaybackState.STATE_PLAYING) controls.pause() else controls.play()
+            is Command.VolumeUp -> adjustVolume(AudioManager.ADJUST_RAISE)
+            is Command.VolumeDown -> adjustVolume(AudioManager.ADJUST_LOWER)
+            else -> {
+                val controls = mediaController?.transportControls ?: return
+                when (command) {
+                    is Command.PlayPause -> {
+                        val state = mediaController?.playbackState?.state
+                        if (state == AndroidPlaybackState.STATE_PLAYING) controls.pause() else controls.play()
+                    }
+                    is Command.Next -> controls.skipToNext()
+                    is Command.Previous -> controls.skipToPrevious()
+                    else -> {}
+                }
             }
-            is Command.Next -> controls.skipToNext()
-            is Command.Previous -> controls.skipToPrevious()
         }
+    }
+
+    private fun adjustVolume(direction: Int) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+        val level = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        btServer.send(Update.Volume(level, max))
     }
 
     fun getCurrentTrackInfo(): TrackInfo? =

@@ -34,11 +34,14 @@ sealed class Command {
     object PlayPause : Command()
     object Next : Command()
     object Previous : Command()
+    object VolumeUp : Command()
+    object VolumeDown : Command()
 }
 
 sealed class Update {
     data class Track(val info: TrackInfo) : Update()
     data class State(val state: PlaybackState) : Update()
+    data class Volume(val level: Int, val maxLevel: Int) : Update()
 }
 ```
 
@@ -54,9 +57,11 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 
 | `type` | Meaning |
 |---|---|
-| `PLAY_PAUSE` | Toggle play/pause on Auxio |
+| `PLAY_PAUSE` | Toggle play/pause |
 | `NEXT` | Skip to next track |
 | `PREVIOUS` | Skip to previous track |
+| `VOLUME_UP` | Raise DAP music stream volume by one step |
+| `VOLUME_DOWN` | Lower DAP music stream volume by one step |
 
 **Updates** (DAP → phone):
 
@@ -64,6 +69,7 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 |---|---|
 | `TRACK_INFO` | `title`, `artist`, `album`, `durationMs`, `albumArtBase64` |
 | `PLAYBACK_STATE` | `isPlaying`, `positionMs` |
+| `VOLUME` | `level`, `maxLevel` |
 
 ### 3.2 Wire Examples
 
@@ -71,8 +77,11 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 {"type":"PLAY_PAUSE"}
 {"type":"NEXT"}
 {"type":"PREVIOUS"}
+{"type":"VOLUME_UP"}
+{"type":"VOLUME_DOWN"}
 {"type":"TRACK_INFO","title":"Retrograde","artist":"James Blake","album":"Overgrown","durationMs":268000,"albumArtBase64":null}
 {"type":"PLAYBACK_STATE","isPlaying":true,"positionMs":42300}
+{"type":"VOLUME","level":8,"maxLevel":15}
 ```
 
 ---
@@ -86,6 +95,8 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 | `PlayPause` | `{"type":"PLAY_PAUSE"}\n` |
 | `Next` | `{"type":"NEXT"}\n` |
 | `Previous` | `{"type":"PREVIOUS"}\n` |
+| `VolumeUp` | `{"type":"VOLUME_UP"}\n` |
+| `VolumeDown` | `{"type":"VOLUME_DOWN"}\n` |
 
 `MessageSerializer.serialize(update: Update): String`
 
@@ -93,6 +104,7 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 |---|---|
 | `Track(TrackInfo("A","B","C",1000,null))` | `{"type":"TRACK_INFO","title":"A","artist":"B","album":"C","durationMs":1000,"albumArtBase64":null}\n` |
 | `State(PlaybackState(true,500))` | `{"type":"PLAYBACK_STATE","isPlaying":true,"positionMs":500}\n` |
+| `Volume(8,15)` | `{"type":"VOLUME","level":8,"maxLevel":15}\n` |
 
 ---
 
@@ -105,6 +117,8 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 | `{"type":"PLAY_PAUSE"}` | `Command.PlayPause` |
 | `{"type":"NEXT"}` | `Command.Next` |
 | `{"type":"PREVIOUS"}` | `Command.Previous` |
+| `{"type":"VOLUME_UP"}` | `Command.VolumeUp` |
+| `{"type":"VOLUME_DOWN"}` | `Command.VolumeDown` |
 | `{"type":"UNKNOWN"}` | `null` |
 | `not json` | `null` |
 | `""` (empty) | `null` |
@@ -115,6 +129,7 @@ All messages are **newline-delimited JSON** (`\n`). Each message is exactly one 
 |---|---|
 | `{"type":"TRACK_INFO","title":"A","artist":"B","album":"C","durationMs":1000,"albumArtBase64":null}` | `Update.Track(TrackInfo("A","B","C",1000,null))` |
 | `{"type":"PLAYBACK_STATE","isPlaying":false,"positionMs":0}` | `Update.State(PlaybackState(false,0))` |
+| `{"type":"VOLUME","level":8,"maxLevel":15}` | `Update.Volume(8,15)` |
 | `{"type":"TRACK_INFO"}` (missing required fields) | `null` |
 | `not json` | `null` |
 | `""` (empty) | `null` |

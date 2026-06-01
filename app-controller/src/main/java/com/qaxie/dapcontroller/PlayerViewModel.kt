@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.qaxie.dapcontroller.core.Command
 import com.qaxie.dapcontroller.core.PlaybackState
 import com.qaxie.dapcontroller.core.TrackInfo
+import com.qaxie.dapcontroller.core.Update
 import kotlinx.coroutines.flow.StateFlow
 
 class PlayerViewModel(app: Application) : AndroidViewModel(app) {
@@ -16,6 +17,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     val trackInfo: StateFlow<TrackInfo?> = ConnectionRepository.trackInfo
     val playbackState: StateFlow<PlaybackState?> = ConnectionRepository.playbackState
     val playbackAnchor: StateFlow<PlaybackAnchor?> = ConnectionRepository.playbackAnchor
+    val volume: StateFlow<Update.Volume?> = ConnectionRepository.volume
 
     @SuppressLint("MissingPermission")
     fun connect(device: BluetoothDevice) {
@@ -43,6 +45,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             Command.PlayPause -> ControllerService.ACTION_PLAY_PAUSE
             Command.Next -> ControllerService.ACTION_NEXT
             Command.Previous -> ControllerService.ACTION_PREVIOUS
+            Command.VolumeUp -> ControllerService.ACTION_VOLUME_UP
+            Command.VolumeDown -> ControllerService.ACTION_VOLUME_DOWN
         }
         getApplication<Application>().startService(
             Intent(getApplication(), ControllerService::class.java).apply {

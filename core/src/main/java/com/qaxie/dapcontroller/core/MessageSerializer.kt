@@ -10,6 +10,8 @@ object MessageSerializer {
             is Command.PlayPause -> "PLAY_PAUSE"
             is Command.Next -> "NEXT"
             is Command.Previous -> "PREVIOUS"
+            is Command.VolumeUp -> "VOLUME_UP"
+            is Command.VolumeDown -> "VOLUME_DOWN"
         })
         return json.toString() + "\n"
     }
@@ -29,6 +31,11 @@ object MessageSerializer {
                 json.put("type", "PLAYBACK_STATE")
                 json.put("isPlaying", update.state.isPlaying)
                 json.put("positionMs", update.state.positionMs)
+            }
+            is Update.Volume -> {
+                json.put("type", "VOLUME")
+                json.put("level", update.level)
+                json.put("maxLevel", update.maxLevel)
             }
         }
         return json.toString() + "\n"

@@ -54,6 +54,7 @@ object ConnectionRepository {
     val trackInfo:       MutableStateFlow<TrackInfo?>      = MutableStateFlow(null)
     val playbackState:   MutableStateFlow<PlaybackState?>  = MutableStateFlow(null)
     val playbackAnchor:  MutableStateFlow<PlaybackAnchor?> = MutableStateFlow(null)
+    val volume:          MutableStateFlow<Update.Volume?>  = MutableStateFlow(null)
 }
 
 data class PlaybackAnchor(
@@ -81,6 +82,8 @@ data class PlaybackAnchor(
 | `ACTION_PLAY_PAUSE` | — | Forward `Command.PlayPause` to `BtClient.send()` |
 | `ACTION_NEXT` | — | Forward `Command.Next` to `BtClient.send()` |
 | `ACTION_PREVIOUS` | — | Forward `Command.Previous` to `BtClient.send()` |
+| `ACTION_VOLUME_UP` | — | Forward `Command.VolumeUp` to `BtClient.send()` |
+| `ACTION_VOLUME_DOWN` | — | Forward `Command.VolumeDown` to `BtClient.send()` |
 | `ACTION_DISCONNECT` | — | Call `BtClient.close()`, reset `ConnectionRepository`, call `stopSelf()` |
 
 ### 4.3 onCreate
@@ -109,6 +112,7 @@ data class PlaybackAnchor(
 |---|---|
 | `Update.Track(info)` | Write `trackInfo = info` to repository. Write `playbackAnchor = null`. Update notification. |
 | `Update.State(state)` | Write `playbackState = state` to repository. Write `playbackAnchor = PlaybackAnchor(state.positionMs, currentTimeMs)`. Update notification. |
+| `Update.Volume(level, maxLevel)` | Write `volume = Update.Volume(level, maxLevel)` to repository. |
 | Flow closes (IOException) | Write `Failed(deviceName, "Connection lost")` to repository. Update notification. Call `stopSelf()`. |
 
 ### 4.7 Command Forwarding (ACTION_PLAY_PAUSE / NEXT / PREVIOUS)
@@ -204,6 +208,7 @@ Collected directly from `ConnectionRepository`:
 | `trackInfo` | `StateFlow<TrackInfo?>` |
 | `playbackState` | `StateFlow<PlaybackState?>` |
 | `playbackAnchor` | `StateFlow<PlaybackAnchor?>` |
+| `volume` | `StateFlow<Update.Volume?>` |
 
 ### 7.2 connect(device: BluetoothDevice)
 
@@ -218,6 +223,14 @@ Collected directly from `ConnectionRepository`:
 
 - If `connectionState` is not `Connected`: no-op.
 - Maps command to the corresponding Intent action and calls `startService()`.
+
+| Command | Intent action |
+|---|---|
+| `Command.PlayPause` | `ACTION_PLAY_PAUSE` |
+| `Command.Next` | `ACTION_NEXT` |
+| `Command.Previous` | `ACTION_PREVIOUS` |
+| `Command.VolumeUp` | `ACTION_VOLUME_UP` |
+| `Command.VolumeDown` | `ACTION_VOLUME_DOWN` |
 
 ---
 
@@ -267,6 +280,8 @@ Collected directly from `ConnectionRepository`:
 │                                │
 │    [⏮]        [⏯]       [⏭]  │  ← 48 dp icon buttons, equal spacing
 │                                │
+│    [🔉]                  [🔊]  │  ← volume down / volume up, 48 dp, equal spacing
+│                                │
 └────────────────────────────────┘
 ```
 
@@ -302,6 +317,8 @@ A new `PLAYBACK_STATE` message replaces `playbackAnchor` and resyncs the bar imm
 | ⏮ | `Command.Previous` | `trackInfo == null` |
 | ⏯ | `Command.PlayPause` | `trackInfo == null` |
 | ⏭ | `Command.Next` | `trackInfo == null` |
+| 🔉 | `Command.VolumeDown` | never (always enabled when connected) |
+| 🔊 | `Command.VolumeUp` | never (always enabled when connected) |
 
 Each tap fires exactly one command. No debounce.
 

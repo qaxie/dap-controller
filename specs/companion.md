@@ -149,7 +149,7 @@ The notification is updated:
    b. Pass the new socket to the active connection handler.
    c. Update notification to *"Connected — waiting for Auxio…"*.
    d. Call `MediaSessionBridge.attach()`.
-      - If it returns `true`: send current `TRACK_INFO` and `PLAYBACK_STATE` immediately (skip if null). Update notification to reflect current track/state.
+      - If it returns `true`: send current `TRACK_INFO`, `PLAYBACK_STATE`, and `VOLUME` immediately (skip if null). Update notification to reflect current track/state.
       - If it returns `false` (no active media session): enter a 2-second retry loop — call `MediaSessionBridge.attach()` every 2 seconds until it returns `true` or the client socket closes.
 3. Start the command read loop on the client socket.
 
@@ -162,6 +162,8 @@ Reads newline-delimited lines from the client socket and handles each:
 | `Command.PlayPause` | Call `play()` if currently paused; call `pause()` if currently playing |
 | `Command.Next` | Call `mediaController.transportControls.skipToNext()` |
 | `Command.Previous` | Call `mediaController.transportControls.skipToPrevious()` |
+| `Command.VolumeUp` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_RAISE, FLAG_SHOW_UI)` |
+| `Command.VolumeDown` | Call `AudioManager.adjustStreamVolume(STREAM_MUSIC, ADJUST_LOWER, FLAG_SHOW_UI)` |
 
 On `IOException` from the read: close the client socket, call `MediaSessionBridge.detach()`, update notification to *"Waiting for connection…"*, return to `acceptLoop()`.
 

@@ -42,6 +42,8 @@ class ControllerService : Service() {
             ACTION_PLAY_PAUSE -> handleCommand(Command.PlayPause)
             ACTION_NEXT -> handleCommand(Command.Next)
             ACTION_PREVIOUS -> handleCommand(Command.Previous)
+            ACTION_VOLUME_UP -> handleCommand(Command.VolumeUp)
+            ACTION_VOLUME_DOWN -> handleCommand(Command.VolumeDown)
             ACTION_DISCONNECT -> handleDisconnect()
         }
         return START_NOT_STICKY
@@ -89,6 +91,9 @@ class ControllerService : Service() {
                             )
                             updateNotification()
                         }
+                        is Update.Volume -> {
+                            ConnectionRepository.volume.value = update
+                        }
                     }
                 }
             }
@@ -125,6 +130,7 @@ class ControllerService : Service() {
         ConnectionRepository.trackInfo.value = null
         ConnectionRepository.playbackState.value = null
         ConnectionRepository.playbackAnchor.value = null
+        ConnectionRepository.volume.value = null
         stopSelf()
     }
 
@@ -136,6 +142,7 @@ class ControllerService : Service() {
         ConnectionRepository.trackInfo.value = null
         ConnectionRepository.playbackState.value = null
         ConnectionRepository.playbackAnchor.value = null
+        ConnectionRepository.volume.value = null
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -240,6 +247,8 @@ class ControllerService : Service() {
         const val ACTION_PLAY_PAUSE = "com.qaxie.dapcontroller.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.qaxie.dapcontroller.ACTION_NEXT"
         const val ACTION_PREVIOUS = "com.qaxie.dapcontroller.ACTION_PREVIOUS"
+        const val ACTION_VOLUME_UP = "com.qaxie.dapcontroller.ACTION_VOLUME_UP"
+        const val ACTION_VOLUME_DOWN = "com.qaxie.dapcontroller.ACTION_VOLUME_DOWN"
         const val ACTION_DISCONNECT = "com.qaxie.dapcontroller.ACTION_DISCONNECT"
         const val EXTRA_DEVICE_ADDRESS = "device_address"
         const val EXTRA_DEVICE_NAME = "device_name"

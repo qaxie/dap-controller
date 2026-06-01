@@ -2,6 +2,7 @@ package com.qaxie.dapcontroller
 
 import com.qaxie.dapcontroller.core.PlaybackState
 import com.qaxie.dapcontroller.core.TrackInfo
+import com.qaxie.dapcontroller.core.Update
 import kotlinx.coroutines.flow.MutableStateFlow
 
 object ConnectionRepository {
@@ -9,4 +10,5 @@ object ConnectionRepository {
     val trackInfo: MutableStateFlow<TrackInfo?> = MutableStateFlow(null)
     val playbackState: MutableStateFlow<PlaybackState?> = MutableStateFlow(null)
     val playbackAnchor: MutableStateFlow<PlaybackAnchor?> = MutableStateFlow(null)
+    val volume: MutableStateFlow<Update.Volume?> = MutableStateFlow(null)
 }

@@ -31,10 +31,26 @@ class MessageSerializerTest {
     }
 
     @Test
+    fun `serialize VolumeUp command`() {
+        val result = MessageSerializer.serialize(Command.VolumeUp)
+        val json = JSONObject(result.trim())
+        assertEquals("VOLUME_UP", json.getString("type"))
+    }
+
+    @Test
+    fun `serialize VolumeDown command`() {
+        val result = MessageSerializer.serialize(Command.VolumeDown)
+        val json = JSONObject(result.trim())
+        assertEquals("VOLUME_DOWN", json.getString("type"))
+    }
+
+    @Test
     fun `serialized command ends with newline`() {
         assertTrue(MessageSerializer.serialize(Command.PlayPause).endsWith("\n"))
         assertTrue(MessageSerializer.serialize(Command.Next).endsWith("\n"))
         assertTrue(MessageSerializer.serialize(Command.Previous).endsWith("\n"))
+        assertTrue(MessageSerializer.serialize(Command.VolumeUp).endsWith("\n"))
+        assertTrue(MessageSerializer.serialize(Command.VolumeDown).endsWith("\n"))
     }
 
     // --- Updates: TRACK_INFO ---
@@ -93,5 +109,21 @@ class MessageSerializerTest {
     fun `serialized State update ends with newline`() {
         val state = PlaybackState(isPlaying = true, positionMs = 500L)
         assertTrue(MessageSerializer.serialize(Update.State(state)).endsWith("\n"))
+    }
+
+    // --- Updates: VOLUME ---
+
+    @Test
+    fun `serialize Volume update`() {
+        val result = MessageSerializer.serialize(Update.Volume(8, 15))
+        val json = JSONObject(result.trim())
+        assertEquals("VOLUME", json.getString("type"))
+        assertEquals(8, json.getInt("level"))
+        assertEquals(15, json.getInt("maxLevel"))
+    }
+
+    @Test
+    fun `serialized Volume update ends with newline`() {
+        assertTrue(MessageSerializer.serialize(Update.Volume(0, 15)).endsWith("\n"))
     }
 }
