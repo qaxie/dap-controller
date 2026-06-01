@@ -244,9 +244,13 @@ Creates a `BluetoothServerSocket` via `BluetoothAdapter.listenUsingRfcommWithSer
 ## 9. Permissions
 
 ```xml
+<!-- Required on all API levels — some Android DAP firmware (e.g. Hiby R4 on Android 12)
+     still enforces the legacy BLUETOOTH permission even when BLUETOOTH_CONNECT is declared. -->
+<uses-permission android:name="android.permission.BLUETOOTH" />
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 ```
 
-`BIND_NOTIFICATION_LISTENER_SERVICE` is declared as a `permission` attribute on the `CompanionNotificationListener` `<service>` tag, not as a top-level `<uses-permission>`.
+`BLUETOOTH` and `BLUETOOTH_ADMIN` are normal (install-time) permissions — no user prompt. `BLUETOOTH_CONNECT` is a runtime permission on stock Android 12+, but DAP firmware may not enforce it. `BIND_NOTIFICATION_LISTENER_SERVICE` is declared as a `permission` attribute on the `CompanionNotificationListener` `<service>` tag, not as a top-level `<uses-permission>`.

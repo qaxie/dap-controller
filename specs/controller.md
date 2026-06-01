@@ -121,19 +121,27 @@ data class PlaybackAnchor(
 
 ## 5. Notification
 
-The notification is visible whenever `ControllerService` is running. It is the user's indicator that the connection is active and their control point when the app is not on screen.
+The notification uses `Notification.MediaStyle` so it appears as a media player card in the notification shade (like Spotify or Auxio). It is visible whenever `ControllerService` is running and is the user's control point when the app is not on screen.
 
-### 5.1 Content by State
+### 5.1 Style
 
-| `connectionState` | Title | Text | Actions |
+- **`Notification.MediaStyle`** with `setShowActionsInCompactView(0, 1, 2)` — compact view shows ⏮ ▶/⏸ ⏭.
+- **Large icon**: album art decoded from `TrackInfo.albumArtBase64`, omitted when null.
+- **Small icon**: play icon drawable.
+- **`VISIBILITY_PUBLIC`**: full content shown on the lock screen.
+- **Content intent**: tapping the notification body opens `MainActivity`.
+
+### 5.2 Content by State
+
+| `connectionState` | Title | Text | Compact actions |
 |---|---|---|---|
 | `Connecting(name)` | *DAP Controller* | *Connecting to \<name\>…* | — |
 | `Connected`, no track | *DAP Controller* | *Connected · Waiting for playback…* | Disconnect |
-| `Connected`, playing | *\<title\>* | *\<artist\>* | ⏮  ⏸  ⏭  Disconnect |
-| `Connected`, paused | *\<title\>* | *\<artist\>* | ⏮  ▶  ⏭  Disconnect |
+| `Connected`, playing | *\<title\>* | *\<artist\>* | ⏮  ⏸  ⏭  (+ Disconnect in expanded) |
+| `Connected`, paused | *\<title\>* | *\<artist\>* | ⏮  ▶  ⏭  (+ Disconnect in expanded) |
 | `Failed(name, reason)` | *DAP Controller* | *\<reason\>* | Dismiss |
 
-### 5.2 Notification Actions
+### 5.3 Notification Actions
 
 Each action button is a `PendingIntent` that calls `startService()` on `ControllerService` with the corresponding action:
 
@@ -145,11 +153,11 @@ Each action button is a `PendingIntent` that calls `startService()` on `Controll
 | Disconnect | `ACTION_DISCONNECT` |
 | Dismiss (on Failed) | `ACTION_DISCONNECT` |
 
-### 5.3 Update Timing
+### 5.4 Update Timing
 
 The notification is updated whenever:
 - `connectionState` changes.
-- `trackInfo` changes (track name in title).
+- `trackInfo` changes (track name in title, album art as large icon).
 - `playbackState.isPlaying` toggles (play ↔ pause icon).
 
 ---
@@ -315,6 +323,7 @@ When `connectionState` becomes `Failed` or `Disconnected` while on `PlayerScreen
     android:usesPermissionFlags="neverForLocation" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 ```
 
-`BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN` are runtime permissions on Android 12+. Requested together at the start of `ConnectScreen`. `FOREGROUND_SERVICE` permissions are granted at install time.
+`BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN` are runtime permissions on Android 12+. Requested together at the start of `ConnectScreen`. `POST_NOTIFICATIONS` is a runtime permission on Android 13+; requested in `MainActivity.onCreate()` before the user can connect — without it the foreground service notification is silently dropped. `FOREGROUND_SERVICE` permissions are granted at install time.
