@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeDown
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -109,6 +110,15 @@ fun PlayerScreen(viewModel: PlayerViewModel, onNavigateToConnect: () -> Unit) {
                         modifier = Modifier.padding(start = 8.dp),
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (isConnected) {
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = {
+                            viewModel.disconnect()
+                            onNavigateToConnect()
+                        }) {
+                            Text("Disconnect")
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(24.dp))
