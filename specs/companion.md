@@ -1,6 +1,6 @@
 # app-companion Spec
 
-The companion runs on the Android DAP DAP. It has a minimal one-screen UI for starting and stopping the service, and a foreground service that bridges the active `MediaSession` on the DAP to a Bluetooth RFCOMM socket. It works with any app that publishes a `MediaSession` (Auxio, Spotify, YouTube, etc.).
+The companion runs on the Android DAP. It has a minimal one-screen UI for starting and stopping the service, and a foreground service that bridges the active `MediaSession` on the DAP to a Bluetooth RFCOMM socket. It works with any app that publishes a `MediaSession` (Auxio, Spotify, YouTube, etc.).
 
 The service **only runs when explicitly started by the user**. It never starts automatically. When it is running, a persistent notification is always visible so the user knows it is active. The user has full control to start and stop it at any time.
 
