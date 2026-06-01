@@ -280,7 +280,7 @@ Collected directly from `ConnectionRepository`:
 │                                │
 │    [⏮]        [⏯]       [⏭]  │  ← 48 dp icon buttons, equal spacing
 │                                │
-│    [🔉]                  [🔊]  │  ← volume down / volume up, 48 dp, equal spacing
+│    [🔉]  8 / 15  ████░░░  [🔊]  │  ← volume down, level / max + progress bar, volume up
 │                                │
 └────────────────────────────────┘
 ```
@@ -310,19 +310,29 @@ A new `PLAYBACK_STATE` message replaces `playbackAnchor` and resyncs the bar imm
 - `isPlaying == true` → show pause icon.
 - `isPlaying == false` or `playbackState == null` → show play icon.
 
-### 9.5 Button Behavior
+### 9.5 Volume Row
+
+Shown at the bottom of the screen whenever `PlayerScreen` is visible (even in the waiting state). Contains three elements in a horizontal row:
+
+- **🔉** — `IconButton`, 48 dp, sends `Command.VolumeDown`
+- **Volume indicator** — fills remaining width; shows `level / maxLevel` as a text label above a `LinearProgressIndicator` (`fraction = level / maxLevel`). Hidden (replaced by a spacer) until the first `Update.Volume` is received.
+- **🔊** — `IconButton`, 48 dp, sends `Command.VolumeUp`
+
+Both buttons are disabled when not connected.
+
+### 9.6 Button Behavior
 
 | Button | Command | Disabled when |
 |---|---|---|
 | ⏮ | `Command.Previous` | `trackInfo == null` |
 | ⏯ | `Command.PlayPause` | `trackInfo == null` |
 | ⏭ | `Command.Next` | `trackInfo == null` |
-| 🔉 | `Command.VolumeDown` | never (always enabled when connected) |
-| 🔊 | `Command.VolumeUp` | never (always enabled when connected) |
+| 🔉 | `Command.VolumeDown` | not connected |
+| 🔊 | `Command.VolumeUp` | not connected |
 
 Each tap fires exactly one command. No debounce.
 
-### 9.6 Disconnect Handling
+### 9.7 Disconnect Handling
 
 When `connectionState` becomes `Failed` or `Disconnected` while on `PlayerScreen`:
 
